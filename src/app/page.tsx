@@ -1,11 +1,9 @@
 'use client'
+import { useState } from "react";
 import {
   Connection,
-  Keypair,
-  SystemProgram,
   Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
+  PublicKey
 } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
@@ -22,11 +20,7 @@ import {
   createTransferCheckedInstruction,
 } from "@solana/spl-token";
 import {
-  createInitializeInstruction,
-  createUpdateFieldInstruction,
   createRemoveKeyInstruction,
-  pack,
-  TokenMetadata,
 } from "@solana/spl-token-metadata";
 import dynamic from "next/dynamic";
 
@@ -54,6 +48,7 @@ const WalletMultiButton = dynamic(
 );
 
 export default function Home() {
+  const [mint, setMint] = useState<string>('');
   const { publicKey, sendTransaction } = useWallet();
   const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
   const connection = new Connection(rpcEndpoint, "confirmed");
@@ -76,6 +71,13 @@ export default function Home() {
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
+
+      setMint(txData.mint);
+
+      console.log(
+        "\nCreate Mint Account:",
+        `https://solscan.io/tx/${tx}?cluster=devnet-solana`,
+      );
       console.log('txHash', txHash)
     } catch (err) {
       // unpack the response
@@ -91,7 +93,7 @@ export default function Home() {
     const removeKeyInstruction = 
       createRemoveKeyInstruction({
         programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-        metadata: mint, // Address of the metadata
+        metadata: new PublicKey(mint), // Address of the metadata
         updateAuthority: updateAuthority, // Authority that can update the metadata
         key: metaData.additionalMetadata[0][0], // Key to remove from the metadata
         idempotent: true, // If the idempotent flag is set to true, then the instruction will not error if the key does not exist
@@ -134,7 +136,7 @@ export default function Home() {
     // Retrieve mint information
     const mintInfo = await getMint(
       connection,
-      mint,
+      new PublicKey(mint),
       "confirmed",
       TOKEN_2022_PROGRAM_ID,
     );
@@ -146,7 +148,7 @@ export default function Home() {
     // Retrieve and log the metadata state
     const metadata = await getTokenMetadata(
       connection,
-      mint, // Mint Account address
+      new PublicKey(mint), // Mint Account address
     );
     console.log("\nMetadata:", JSON.stringify(metadata, null, 2));
   }
@@ -168,6 +170,14 @@ export default function Home() {
       >
         Create Mint
       </button>
+
+      <button 
+        onClick={readMintMetadata}
+        className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+      >
+        Read Mint Metadata
+      </button>
+      
       <button 
         onClick={removeMetadata}
         className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'

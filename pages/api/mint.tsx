@@ -33,7 +33,7 @@ import {
 
 type Data = {
   transaction: string;
-  // message: string;
+  mint: string;
 };
 
 type Error = {
@@ -183,18 +183,8 @@ export default async function handler(
         // Return the serialized transaction
         res.status(200).json({
           transaction: base64,
-          
+          mint: mint.toString(),
         });
-        // const transactionSignature = await sendAndConfirmTransaction(
-        //   connection,
-        //   transaction,
-        //   [publicKey, mintKeypair], // Signers
-        // );
-
-        // console.log(
-        //   "\nCreate Mint Account:",
-        //   `https://solana.fm/tx/${transactionSignature}?cluster=devnet-solana`,
-        // );
       } catch (err) {
         console.error(err);
     

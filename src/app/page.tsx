@@ -1,5 +1,4 @@
 'use client'
-import { ContextProvider } from "../contexts/ContextProvider";
 import {
   Connection,
   Keypair,
@@ -20,6 +19,7 @@ import {
   getTokenMetadata,
   TYPE_SIZE,
   LENGTH_SIZE,
+  createTransferCheckedInstruction,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
@@ -28,6 +28,8 @@ import {
   pack,
   TokenMetadata,
 } from "@solana/spl-token-metadata";
+// import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import dynamic from "next/dynamic";
 
 
 // pub struct TokenMetadata {
@@ -47,129 +49,41 @@ import {
 //     pub additional_metadata: Vec<(String, String)>,
 // }
 
+const WalletMultiButton = dynamic(
+  () => import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton),
+  { ssr: false }
+);
+
 export default function Home() {
   const { publicKey, sendTransaction } = useWallet();
   const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
   const connection = new Connection(rpcEndpoint, "confirmed");
-  // Generate new keypair for Mint Account
-  const mintKeypair = Keypair.generate();
-  // Address for Mint Account
-  const mint = mintKeypair.publicKey;
-  // Decimals for Mint Account
-  const decimals = 2;
-  // Authority that can mint new tokens
-  const mintAuthority = publicKey!;
-  // Authority that can update the metadata pointer and token metadata
-  const updateAuthority = publicKey!;
-
-  // Metadata to store in Mint Account
-  const metaData: TokenMetadata = {
-    updateAuthority: updateAuthority,
-    mint: mint,
-    name: "RetroSol",
-    symbol: "RETRO",
-    uri: "https://raw.githubusercontent.com/solana-developers/opos-asset/main/assets/DeveloperPortal/metadata.json",
-    additionalMetadata: [["description", "Only Possible On Solana"]],
-  };
-
-  // Size of MetadataExtension 2 bytes for type, 2 bytes for length
-  const metadataExtension = TYPE_SIZE + LENGTH_SIZE;
-  // Size of metadata
-  const metadataLen = pack(metaData).length;
-
-  // Size of Mint Account with extension
-  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
-
-  // Minimum lamports required for Mint Account
-  async function calculateRentExemption() {
-    const lamports = await connection.getMinimumBalanceForRentExemption(
-      mintLen + metadataExtension + metadataLen,
-    );
-    return lamports;
-  }
-
-  async function createMint(){
-    const lamports = await calculateRentExemption();
-    // Instruction to invoke System Program to create new account
-    const createAccountInstruction = SystemProgram.createAccount({
-      fromPubkey: publicKey!, // Account that will transfer lamports to created account
-      newAccountPubkey: mint, // Address of the account to create
-      space: mintLen, // Amount of bytes to allocate to the created account
-      lamports, // Amount of lamports transferred to created account
-      programId: TOKEN_2022_PROGRAM_ID, // Program assigned as owner of created account
-    });
-
-    const initializeMetadataPointerInstruction =
-      createInitializeMetadataPointerInstruction(
-        mint, // Mint Account address
-        updateAuthority, // Authority that can set the metadata address
-        mint, // Account address that holds the metadata
-        TOKEN_2022_PROGRAM_ID,
-      );
-
-    // Instruction to initialize Mint Account data
-    const initializeMintInstruction = 
-      createInitializeMintInstruction(
-        mint, // Mint Account Address
-        decimals, // Decimals of Mint
-        mintAuthority, // Designated Mint Authority
-        null, // Optional Freeze Authority
-        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
-      );
-
-    // Instruction to initialize Metadata Account data
-    const initializeMetadataInstruction = 
-      createInitializeInstruction({
-        programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-        metadata: mint, // Account address that holds the metadata
-        updateAuthority: updateAuthority, // Authority that can update the metadata
-        mint: mint, // Mint Account address
-        mintAuthority: mintAuthority, // Designated Mint Authority
-        name: metaData.name,
-        symbol: metaData.symbol,
-        uri: metaData.uri,
+  async function createMint() {
+    console.log('publicKey starting mint', publicKey?.toString())
+    try {
+      // send the metadata to the /api/mint endpoint
+      const res = await fetch("/api/mint", {
+        method: "POST",
+        body: JSON.stringify({ 
+          publicKey: publicKey,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      // Instruction to update metadata, adding custom field
-      // This instruction will either update the value of an existing field or add it to additional_metadata if it does not already exist. 
-      // Note that you may need to reallocate more space to the account to accommodate the additional data. In this example, 
-      // we allocated all the lamports required for rent up front when creating the account.
-      const updateFieldInstruction = 
-        createUpdateFieldInstruction({
-          programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-          metadata: mint, // Account address that holds the metadata
-          updateAuthority: updateAuthority, // Authority that can update the metadata
-          field: metaData.additionalMetadata[0][0], // key
-          value: metaData.additionalMetadata[0][1], // value
-        });
+      const txData = await res.json();
+      // console.log("txData", txData);
+      const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+      const txHash = await sendTransaction(tx, connection);
+      console.log('txHash', txHash)
+    } catch (err) {
+      // unpack the response
+      console.log('err', err)
+    }
 
-      // Add instructions to new transaction
-      const transaction = new Transaction().add(
-        createAccountInstruction,
-        initializeMetadataPointerInstruction,
-        // note: the above instructions are required before initializing the mint
-        initializeMintInstruction,
-        initializeMetadataInstruction,
-        updateFieldInstruction,
-      );
-
-      const txHash = await sendTransaction(transaction, connection);
-
-      const { blockhash, lastValidBlockHeight } =
-        await connection.getLatestBlockhash();
-
-      // Send transaction
-      const transactionSignature = await connection.confirmTransaction({
-        blockhash,
-        lastValidBlockHeight,
-        signature: txHash,
-      });
-
-      console.log(
-        "\nCreate Mint Account:",
-        `https://solana.fm/tx/${transactionSignature}?cluster=devnet-solana`,
-      );
   }
+
 
   // Remove a key from the metadata account
   async function removeMetadata() {
@@ -186,22 +100,20 @@ export default function Home() {
     // Add instruction to new transaction
     const transaction = new Transaction().add(removeKeyInstruction);
 
-    // Send transaction
     const txHash = await sendTransaction(transaction, connection);
 
-    const { blockhash, lastValidBlockHeight } =
-      await connection.getLatestBlockhash();
+    console.log('txHash', txHash)
 
-    //Confirm transaction
-    const transactionSignature = await connection.confirmTransaction({
-      blockhash,
-      lastValidBlockHeight,
-      signature: txHash,
-    });
+    // // Send transaction
+    // const transactionSignature = await sendAndConfirmTransaction(
+    //   connection,
+    //   transaction,
+    //   [publicKey as Signer, mintKeypair as Signer], // Signers
+    // );
 
     console.log(
       "\nRemove Additional Metadata Field:",
-      `https://solana.fm/tx/${transactionSignature}?cluster=devnet-solana`,
+      `https://solana.fm/tx/${txHash}?cluster=devnet-solana`,
     );
 
     // Retrieve and log the metadata state
@@ -241,11 +153,27 @@ export default function Home() {
   
 
   return (
-      <ContextProvider>
-        <div>
-          <h1>Token Metadata</h1>
-        </div>
-      </ContextProvider>
-      
+    <div 
+      className='flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-r from-green-400 to-blue-500 space-y-2'
+    >
+      <h1 
+        className='text-6xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-500'
+      >
+        Token Extensions
+      </h1>
+      <WalletMultiButton />
+      <button 
+        onClick={createMint} 
+        className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+      >
+        Create Mint
+      </button>
+      <button 
+        onClick={removeMetadata}
+        className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+      >
+        Remove Metadata
+      </button>
+    </div>      
   )
 }

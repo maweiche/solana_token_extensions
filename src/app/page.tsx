@@ -28,7 +28,6 @@ import {
   pack,
   TokenMetadata,
 } from "@solana/spl-token-metadata";
-// import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import dynamic from "next/dynamic";
 
 
@@ -75,7 +74,8 @@ export default function Home() {
       const txData = await res.json();
       // console.log("txData", txData);
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
-      const txHash = await sendTransaction(tx, connection);
+      const txHash =
+        await sendTransaction(tx, connection);
       console.log('txHash', txHash)
     } catch (err) {
       // unpack the response

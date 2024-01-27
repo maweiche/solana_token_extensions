@@ -17,6 +17,7 @@ import {
   createInitializeMetadataPointerInstruction, // UPDATEABLE METADATA INSTRUCTIONS
   createInitializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
   createInitializeNonTransferableMintInstruction, //NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
+  createInitializeInterestBearingMintInstruction, //INTEREST BEARING MINT ACCOUNT INSTRUCTIONS
   TYPE_SIZE,
   LENGTH_SIZE,
 } from "@solana/spl-token";
@@ -88,7 +89,8 @@ export default async function handler(
   const mintLen = getMintLen([
     ExtensionType.MetadataPointer,  //UPDATEABLE METADATA
     ExtensionType.MintCloseAuthority, //CLOSEABLE MINT ACCOUNT
-    ExtensionType.NonTransferable
+    ExtensionType.NonTransferable, //NON TRANSFERABLE MINT ACCOUNT
+    ExtensionType.InterestBearingConfig //INTEREST BEARING MINT ACCOUNT
   ]);
 
   // Minimum lamports required for Mint Account
@@ -180,7 +182,23 @@ export default async function handler(
       );
     //////////////////////////////////////////////////////////////////////////////////////
     //***********************************************************************************/
+    // INTEREST BEARING MINT ACCOUNT INSTRUCTIONS/////////////////////////////////////////
+    // Authority that can update the interest rate
+    const rateAuthority = public_key;
+    // Interest rate basis points (100 = 1%)
+    // Max value = 32,767 (i16)
+    const rate = 32_767;
 
+    // Instruction to initialize the InterestBearingConfig Extension
+    const initializeInterestBearingMintInstruction =
+    createInitializeInterestBearingMintInstruction(
+      mint, // Mint Account address
+      rateAuthority, // Designated Rate Authority
+      rate, // Interest rate basis points
+      TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+    );
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
 
     // Get a recent blockhash to include in the transaction
     const { blockhash } =

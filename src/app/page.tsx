@@ -177,12 +177,11 @@ export default function Home() {
         await sendTransaction(tx, connection);
 
       console.log(
-        "\nMint Account Closed:",
+        "\nTokens Minted! :",
         `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
       );
       console.log('txHash', txHash)
 
-      setMint(null);
     } catch (err) {
       // unpack the response
       console.log('err', err)
@@ -218,7 +217,6 @@ export default function Home() {
       );
       console.log('txHash', txHash)
 
-      setMint(null);
     } catch (err) {
       // unpack the response
       console.log('err', err)
@@ -310,6 +308,7 @@ export default function Home() {
               Mint Tokens to Account
             </button>
             <button
+              disabled={true}
               onClick={()=> burnTokens()}
               className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
             >

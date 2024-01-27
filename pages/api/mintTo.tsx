@@ -2,40 +2,16 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import {
   Connection,
   Keypair,
-  SystemProgram,
   Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
   PublicKey,
 } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
-  ExtensionType,
   TOKEN_2022_PROGRAM_ID,
   createMintToInstruction,
-  createBurnInstruction,
-  createInitializeMintInstruction,
-  getMintLen,
-  createInitializeMetadataPointerInstruction,
-  getMint,
-  getMetadataPointerState,
-  getTokenMetadata,
-  TYPE_SIZE,
-  LENGTH_SIZE,
-  createTransferCheckedInstruction,
-  closeAccount,
-
-  createCloseAccountInstruction
+  createAssociatedTokenAccountInstruction,
+  getAssociatedTokenAddress
 } from "@solana/spl-token";
-import {
-  createInitializeInstruction,
-  createUpdateFieldInstruction,
-  createRemoveKeyInstruction,
-  pack,
-  TokenMetadata,
-} from "@solana/spl-token-metadata";
-import fs from "fs";
-import path from "path";
 
 type Data = {
   transaction: string;
@@ -64,30 +40,39 @@ export default async function handler(
             recentBlockhash: blockhash,
             feePayer: new PublicKey(publicKey),
         });
-        // get the keypair from the mint.json file
-        const filePath = path.join(process.cwd(), 'lib', 'mint.json')
-        const data = fs.readFileSync(filePath, 'utf8')
-        const mintKeypair = JSON.parse(data)
-        console.log('mintKeypair', mintKeypair)
-        const secret_key = Object.values(mintKeypair._keypair.secretKey)
-        console.log('secret_key', secret_key)
-        const keypair = Keypair.fromSecretKey(new Uint8Array(secret_key))
-        const mintToInstruction = await createMintToInstruction(
+
+        // Create associated token account for the mint
+        const associatedTokenAccount = await getAssociatedTokenAddress(
+            new PublicKey(mint),
+            public_key,
+            false,
+            TOKEN_2022_PROGRAM_ID,
+          );
+
+        // Create the associated token account instruction to add to the transaction since the wallet does not have the associated token account yet
+        const destinationTokenAccount = await createAssociatedTokenAccountInstruction(
+            public_key, // Payer to create Token Account
+            associatedTokenAccount, // Token Account owner
+            public_key,
             new PublicKey(mint), // Mint Account address
-            public_key, // Destination address
-            mint_authority, // Mint token authority
-            BigInt(1), // Amount
-            [public_key], // Signers
             TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
           );
 
-        transaction.partialSign(keypair)
+        console.log('associatedTokenAccount', associatedTokenAccount)
+
+        const mintToInstruction = await createMintToInstruction(
+            new PublicKey(mint), // Mint Account address
+            associatedTokenAccount, // Destination address
+            mint_authority, // Mint token authority
+            100, // Amount (100 for 2 decimal place mint = 1.00 tokens)
+            [public_key], // Signers
+            TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+          );
         
-        transaction.add(mintToInstruction);
+        transaction.add(destinationTokenAccount, mintToInstruction);
 
         // Serialize the transaction and convert to base64 to return it
         const serializedTransaction = transaction.serialize({
-            // We will need the buyer to sign this transaction after it's returned to them
             requireAllSignatures: false,
         });
         

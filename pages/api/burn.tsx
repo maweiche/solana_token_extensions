@@ -13,6 +13,7 @@ import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
   createMintToInstruction,
+  getAssociatedTokenAddress,
   createBurnInstruction,
   createInitializeMintInstruction,
   getMintLen,
@@ -64,13 +65,21 @@ export default async function handler(
             recentBlockhash: blockhash,
             feePayer: new PublicKey(publicKey),
         });
-        
+
+        // Get the Associated Token Account to burn the tokens from
+        const associatedTokenAccount = await getAssociatedTokenAddress(
+            new PublicKey(mint),
+            public_key,
+            false,
+            TOKEN_2022_PROGRAM_ID,
+          );
+        console.log('associatedTokenAccount', associatedTokenAccount)
         const burnInstruction = await createBurnInstruction(
-            public_key, // Account to burn tokens from
+            associatedTokenAccount, // Account to burn tokens from
             mint, // Mint Account address
             public_key, // Destination address
             100, // Amount
-            [public_key], // Signers
+            undefined, // Signers
             TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
           );
         

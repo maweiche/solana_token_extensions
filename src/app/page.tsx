@@ -3,22 +3,8 @@ import { useState } from "react";
 import {
   Connection,
   Transaction,
-  PublicKey
 } from "@solana/web3.js";
 import { useWallet } from "@solana/wallet-adapter-react";
-import {
-  ExtensionType,
-  TOKEN_2022_PROGRAM_ID,
-  createInitializeMintInstruction,
-  getMintLen,
-  createInitializeMetadataPointerInstruction,
-  getMint,
-  getMetadataPointerState,
-  getTokenMetadata,
-  TYPE_SIZE,
-  LENGTH_SIZE,
-  createTransferCheckedInstruction,
-} from "@solana/spl-token";
 import {
   TokenMetadata,
   createRemoveKeyInstruction,

@@ -28,30 +28,14 @@ export default async function handler(
 ) {
     const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
     const connection = new Connection(rpcEndpoint, "confirmed");
-    // unpack the request body
+
     const { mint } = req.body;
 
-    console.log('mint', mint.toString())
-
     try{
-        // Retrieve mint information
-        const mintInfo = await getMint(
-            connection,
-            new PublicKey(mint),
-            "confirmed",
-            TOKEN_2022_PROGRAM_ID,
-        );
-
-        // Retrieve and log the metadata pointer state
-        const metadataPointer = getMetadataPointerState(mintInfo);
-        console.log("\nMetadata Pointer:", JSON.stringify(metadataPointer, null, 2));
-
-        // Retrieve and log the metadata state
         const metadata = await getTokenMetadata(
             connection,
             new PublicKey(mint), // Mint Account address
         );
-        console.log("\nMetadata:", JSON.stringify(metadata, null, 2));
         
         if(metadata != null){
             res.status(200).json({

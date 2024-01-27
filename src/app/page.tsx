@@ -35,11 +35,12 @@ const WalletMultiButton = dynamic(
 );
 
 export default function Home() {
-  const [mint, setMint] = useState<string>('WENWENvqqNya429ubCdR81ZmD69brwQaaBYY6p3LCpk');
+  const [mint, setMint] = useState<string | null>(null);
   const [metaData, setMetaData] = useState<TokenMetadata>();
   const { publicKey, sendTransaction } = useWallet();
   const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
   const connection = new Connection(rpcEndpoint, "confirmed");
+
   async function createMint() {
     console.log('publicKey starting mint', publicKey?.toString())
     try {
@@ -66,14 +67,13 @@ export default function Home() {
 
       console.log(
         "\nCreate Mint Account:",
-        `https://solscan.io/tx/${tx}?cluster=devnet-solana`,
+        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
       );
       console.log('txHash', txHash)
     } catch (err) {
       // unpack the response
       console.log('err', err)
     }
-
   }
 
 
@@ -83,7 +83,6 @@ export default function Home() {
       console.log('mint', mint)
       console.log('metaData', metaData)
     try {
-      
       // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/remove", {
         method: "POST",
@@ -109,19 +108,127 @@ export default function Home() {
 
       console.log(
         "\nUpdated Metadata on Mint Account:",
-        `https://solscan.io/tx/${tx}?cluster=devnet-solana`,
+        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
       );
       console.log('txHash', txHash)
     } catch (err) {
       // unpack the response
       console.log('err', err)
     }
+  }
 
+   // Remove a key from the metadata account
+   async function closeMintAccount() {
+    try {
+      // send the metadata to the /api/mint endpoint
+      const res = await fetch("/api/closeMint", {
+        method: "POST",
+        body: JSON.stringify({ 
+          publicKey: publicKey,
+          mint: mint,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const txData = await res.json();
+      
+      console.log("txData", txData);
+      console.log('txData mint', txData.mint)
+      const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+      const txHash =
+        await sendTransaction(tx, connection);
+
+      console.log(
+        "\nMint Account Closed:",
+        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+      );
+      console.log('txHash', txHash)
+
+      setMint(null);
+    } catch (err) {
+      // unpack the response
+      console.log('err', err)
+    }
+  }
+
+  // Mint Tokens to Account
+  async function mintToAccount() {
+    try {
+      // send the metadata to the /api/mint endpoint
+      const res = await fetch("/api/mintTo", {
+        method: "POST",
+        body: JSON.stringify({ 
+          publicKey: publicKey,
+          mint: mint,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const txData = await res.json();
+      
+      console.log("txData", txData);
+      console.log('txData mint', txData.mint)
+      const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+      const txHash =
+        await sendTransaction(tx, connection);
+
+      console.log(
+        "\nMint Account Closed:",
+        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+      );
+      console.log('txHash', txHash)
+
+      setMint(null);
+    } catch (err) {
+      // unpack the response
+      console.log('err', err)
+    }
+  }
+
+  // Burn Tokens from Account
+  async function burnTokens() {
+    try {
+      // send the metadata to the /api/mint endpoint
+      const res = await fetch("/api/burn", {
+        method: "POST",
+        body: JSON.stringify({ 
+          publicKey: publicKey,
+          mint: mint,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const txData = await res.json();
+      
+      console.log("txData", txData);
+      console.log('txData mint', txData.mint)
+      const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+      const txHash =
+        await sendTransaction(tx, connection);
+
+      console.log(
+        "\nMint Account Closed:",
+        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+      );
+      console.log('txHash', txHash)
+
+      setMint(null);
+    } catch (err) {
+      // unpack the response
+      console.log('err', err)
+    }
   }
 
   // Read Metadata from Mint Account
   async function readMintMetadata() {
     try {
+      console.log('mint', mint)
       // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/readMint", {
         method: "POST",
@@ -166,20 +273,50 @@ export default function Home() {
         >
           Create Mint
         </button>
-
-        <button 
-          onClick={readMintMetadata}
-          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-        >
-          Read Mint Metadata
-        </button>
-        
-        <button 
-          onClick={()=> removeMetadata()}
-          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-        >
-          Remove Metadata
-        </button>
+        {mint && (
+          <button 
+            onClick={readMintMetadata}
+            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+          >
+            Read Mint Metadata
+          </button>
+        )}
+        {mint && (
+          <button 
+            onClick={()=> removeMetadata()}
+            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+          >
+            Remove Metadata
+          </button>
+        )}
+        {mint && (
+          <button 
+            onClick={()=> closeMintAccount()}
+            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+          >
+            Close Mint Account
+          </button>
+        )}
+      </div>
+      <div
+        className='flex flex-row space-y-2'
+      >
+        {mint && (
+          <div>
+            <button
+              onClick={()=> mintToAccount()}
+              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            >
+              Mint Tokens to Account
+            </button>
+            <button
+              onClick={()=> burnTokens()}
+              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            >
+              Burn Tokens from Account
+            </button>
+          </div>
+        )}
       </div>
     </div>      
   )

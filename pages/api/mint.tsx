@@ -14,18 +14,15 @@ import {
   TOKEN_2022_PROGRAM_ID,
   createInitializeMintInstruction,
   getMintLen,
-  createInitializeMetadataPointerInstruction,
-  getMint,
-  getMetadataPointerState,
-  getTokenMetadata,
+  createInitializeMetadataPointerInstruction, // UPDATEABLE METADATA INSTRUCTIONS
+  createInitializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
+  createInitializeNonTransferableMintInstruction, //NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
   TYPE_SIZE,
   LENGTH_SIZE,
-  createTransferCheckedInstruction,
 } from "@solana/spl-token";
 import {
   createInitializeInstruction,
-  createUpdateFieldInstruction,
-  createRemoveKeyInstruction,
+  createUpdateFieldInstruction, 
   pack,
   TokenMetadata,
 } from "@solana/spl-token-metadata";
@@ -49,7 +46,7 @@ export default async function handler(
   const connection = new Connection(rpcEndpoint, "confirmed");
 
   const { publicKey } = req.body;
-
+  const public_key = new PublicKey(publicKey);
   // Generate new keypair for Mint Account
   const mintKeypair = Keypair.generate();
 
@@ -66,13 +63,15 @@ export default async function handler(
   // Decimals for Mint Account
   const decimals = 2;
   // Authority that can mint new tokens
-  const mintAuthority = new PublicKey(publicKey);
+  const mintAuthority = public_key;
   // Authority that can update the metadata pointer and token metadata
-  const updateAuthority = new PublicKey(publicKey);
+  const updateAuthority = public_key;
+  // Close Authority that can close the mint account
+  const closeAuthority = public_key;
 
   // Metadata to store in Mint Account
   const metaData: TokenMetadata = {
-    updateAuthority: updateAuthority,
+    updateAuthority: public_key,
     mint: mint,
     name: "RetroSol",
     symbol: "RETRO",
@@ -86,7 +85,11 @@ export default async function handler(
   const metadataLen = pack(metaData).length;
 
   // Size of Mint Account with extension
-  const mintLen = getMintLen([ExtensionType.MetadataPointer]);
+  const mintLen = getMintLen([
+    ExtensionType.MetadataPointer,  //UPDATEABLE METADATA
+    ExtensionType.MintCloseAuthority, //CLOSEABLE MINT ACCOUNT
+    ExtensionType.NonTransferable
+  ]);
 
   // Minimum lamports required for Mint Account
   async function calculateRentExemption() {
@@ -101,7 +104,7 @@ export default async function handler(
 
     // Instruction to invoke System Program to create new account
     const createAccountInstruction = SystemProgram.createAccount({
-      fromPubkey: updateAuthority, // Account that will transfer lamports to created account
+      fromPubkey: public_key, // Account that will transfer lamports to created account
       newAccountPubkey: metaData.mint, // Address of the account to create
       space: mintLen, // Amount of bytes to allocate to the created account
       lamports, // Amount of lamports transferred to created account
@@ -110,16 +113,16 @@ export default async function handler(
 
     const initializeMetadataPointerInstruction =
       createInitializeMetadataPointerInstruction(
-        metaData.mint, // Mint Account address
+        mint, // Mint Account address
         updateAuthority, // Authority that can set the metadata address
-        metaData.mint, // Account address that holds the metadata
+        mint, // Account address that holds the metadata
         TOKEN_2022_PROGRAM_ID,
       );
 
     // Instruction to initialize Mint Account data
     const initializeMintInstruction = 
       createInitializeMintInstruction(
-        metaData.mint, // Mint Account Address
+        mint, // Mint Account Address
         decimals, // Decimals of Mint
         mintAuthority, // Designated Mint Authority
         null, // Optional Freeze Authority
@@ -130,14 +133,17 @@ export default async function handler(
     const initializeMetadataInstruction = 
       createInitializeInstruction({
         programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-        metadata: metaData.mint, // Account address that holds the metadata
+        metadata: mint, // Account address that holds the metadata
         updateAuthority: updateAuthority, // Authority that can update the metadata
-        mint: metaData.mint, // Mint Account address
+        mint: mint, // Mint Account address
         mintAuthority: mintAuthority, // Designated Mint Authority
         name: metaData.name,
         symbol: metaData.symbol,
         uri: metaData.uri,
       });
+
+
+    // UPDATEABLE METADATA INSTRUCTIONS//////////////////////////////////////////////////
 
     // Instruction to update metadata, adding custom field
     // This instruction will either update the value of an existing field or add it to additional_metadata if it does not already exist. 
@@ -151,6 +157,30 @@ export default async function handler(
         field: metaData.additionalMetadata[0][0], // key
         value: metaData.additionalMetadata[0][1], // value
       });
+    
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // CLOSEABLE MINT ACCOUNT INSTRUCTIONS////////////////////////////////////////////////
+    // Instruction to initialize the MintCloseAuthority Extension
+    const initializeMintCloseAuthorityInstruction =
+      createInitializeMintCloseAuthorityInstruction(
+        mint, // Mint Account address
+        closeAuthority, // Designated Close Authority
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS (SOL-BOUND)/////////////////////////////
+    // Instruction to initialize the NonTransferable Extension
+    const initializeNonTransferableMintInstruction =
+      createInitializeNonTransferableMintInstruction(
+        mint, // Mint Account address
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+
 
     // Get a recent blockhash to include in the transaction
     const { blockhash } =
@@ -162,14 +192,17 @@ export default async function handler(
       feePayer: updateAuthority,
     });
       
-    // Add instructions to new transaction
+    // Add instructions to new transaction, the token extensions MUST be added before the initialize mint instruction
+    // otherwise the transaction will fail
     transaction.add(
       createAccountInstruction,
-      initializeMetadataPointerInstruction,
+      initializeMetadataPointerInstruction, // UPDATEABLE METADATA INSTRUCTIONS
+      initializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
+      initializeNonTransferableMintInstruction, // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
       // note: the above instructions are required before initializing the mint
       initializeMintInstruction,
       initializeMetadataInstruction,
-      updateFieldInstruction,
+      updateFieldInstruction, // UPDATEABLE METADATA INSTRUCTIONS
     );
 
       // partial sign transaction with mint keypair

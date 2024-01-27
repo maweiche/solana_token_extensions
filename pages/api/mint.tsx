@@ -29,7 +29,8 @@ import {
   pack,
   TokenMetadata,
 } from "@solana/spl-token-metadata";
-
+import fs from "fs";
+import path from "path";
 
 type Data = {
   transaction: string;
@@ -53,6 +54,19 @@ export default async function handler(
   )
   // Generate new keypair for Mint Account
   const mintKeypair = Keypair.generate();
+  console.log('mintKeypair', mintKeypair)
+  // use fs to create a file with the mintKeypair in the lib folder
+  const filePath = path.join(process.cwd(), 'lib', 'mint.json')
+
+  fs.writeFile(filePath, JSON.stringify(mintKeypair), function (err) {
+    if (err) throw err;
+    console.log('Saved!');
+  })
+  
+
+
+
+  console.log('mintKeypair', mintKeypair)
   // Address for Mint Account
   const mint = mintKeypair.publicKey;
   // Decimals for Mint Account

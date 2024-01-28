@@ -41,36 +41,9 @@ export default function InterestUi(
     { mint }: { mint: string },
 ) {
     const [interestConfig, setInterestConfig] = useState<MintConfig>();
-    const { publicKey } = useWallet();
     const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
     const connection = new Connection(rpcEndpoint, "confirmed");
 
-    async function updateInterest() {
-        try {
-            console.log('mint', mint)
-            // send the metadata to the /api/mint endpoint
-            const res = await fetch("/api/updateInterest", {
-            method: "POST",
-            body: JSON.stringify({ 
-                mint: mint, // Mint Account address
-                publicKey: publicKey, // Wallet address
-            }),
-            headers: {
-                "Content-Type": "application/json",
-            },
-            });
-    
-            const mintData = await res.json();
-    
-            console.log('mintData', mintData)
-    
-    
-        } catch (err) {
-            // unpack the response
-            console.log('err', err)
-        }
-          
-    }
 
     async function getInterestDetails() {
         // Fetch Mint Account data

@@ -18,6 +18,7 @@ import {
   createInitializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
   createInitializeNonTransferableMintInstruction, //NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
   createInitializeInterestBearingMintInstruction, //INTEREST BEARING MINT ACCOUNT INSTRUCTIONS
+  createInitializePermanentDelegateInstruction, //PERMANENT DELEGATE MINT ACCOUNT INSTRUCTIONS
   TYPE_SIZE,
   LENGTH_SIZE,
 } from "@solana/spl-token";
@@ -90,7 +91,8 @@ export default async function handler(
     ExtensionType.MetadataPointer,  //UPDATEABLE METADATA
     ExtensionType.MintCloseAuthority, //CLOSEABLE MINT ACCOUNT
     ExtensionType.NonTransferable, //NON TRANSFERABLE MINT ACCOUNT
-    ExtensionType.InterestBearingConfig //INTEREST BEARING MINT ACCOUNT
+    ExtensionType.InterestBearingConfig, //INTEREST BEARING MINT ACCOUNT
+    ExtensionType.PermanentDelegate //PERMANENT DELEGATE MINT ACCOUNT
   ]);
 
   // Minimum lamports required for Mint Account
@@ -199,6 +201,15 @@ export default async function handler(
     );
     //////////////////////////////////////////////////////////////////////////////////////
     //***********************************************************************************/
+    // PERMANENT DELEGATION ACCOUNT INSTRUCTIONS//////////////////////////////////////////
+    // Instruction to initialize the MintCloseAuthority Extension
+    const permanentDelegate = public_key;
+    const initializePermanentDelegateInstruction =
+    createInitializePermanentDelegateInstruction(
+      mint, // Mint Account address
+      permanentDelegate, // Designated Permanent Delegate
+      TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+    );
 
     // Get a recent blockhash to include in the transaction
     const { blockhash } =
@@ -219,6 +230,7 @@ export default async function handler(
       initializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
       initializeNonTransferableMintInstruction, // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
       initializeInterestBearingMintInstruction, // INTEREST BEARING MINT ACCOUNT INSTRUCTIONS
+      initializePermanentDelegateInstruction, // PERMANENT DELEGATE MINT ACCOUNT INSTRUCTIONS
       // note: the above instructions are required before initializing the mint
       initializeMintInstruction,
       initializeMetadataInstruction,

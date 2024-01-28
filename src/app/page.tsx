@@ -237,13 +237,11 @@ export default function Home() {
         Token Extensions
       </h1>
       {!publicKey && (
-        <div className='flex flex-col space-x-2'>
-          <h1 className='text-2xl font-bold text-center text-black'>
-            Connect Wallet to get started
-          </h1>
-          <WalletMultiButton />
-        </div>
+        <h1 className='text-2xl font-bold text-center text-black'>
+          Connect Wallet to get started
+        </h1>
       )}
+      <WalletMultiButton />
       <div className='flex flex-col space-x-2'>
         {!mint && publicKey && (
           <button 

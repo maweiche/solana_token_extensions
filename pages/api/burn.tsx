@@ -55,7 +55,7 @@ export default async function handler(
 
     const { publicKey, mint } = req.body;
     const public_key = new PublicKey(publicKey);
-    const mint_authority = public_key;
+
     console.log('mint', mint)
     try {
 
@@ -76,8 +76,8 @@ export default async function handler(
         console.log('associatedTokenAccount', associatedTokenAccount)
         const burnInstruction = await createBurnInstruction(
             associatedTokenAccount, // Account to burn tokens from
-            mint, // Mint Account address
-            public_key, // Destination address
+            new PublicKey(mint), // Mint Account address
+            public_key, // Owner of the account
             100, // Amount
             undefined, // Signers
             TOKEN_2022_PROGRAM_ID, // Token Extension Program ID

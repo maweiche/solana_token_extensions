@@ -212,11 +212,13 @@ export default async function handler(
       
     // Add instructions to new transaction, the token extensions MUST be added before the initialize mint instruction
     // otherwise the transaction will fail
+    // note: if you included the extensions in the mintLen calculation, then you must include them in the transaction or it will fail
     transaction.add(
       createAccountInstruction,
       initializeMetadataPointerInstruction, // UPDATEABLE METADATA INSTRUCTIONS
       initializeMintCloseAuthorityInstruction, // CLOSEABLE MINT ACCOUNT INSTRUCTIONS
       initializeNonTransferableMintInstruction, // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS
+      initializeInterestBearingMintInstruction, // INTEREST BEARING MINT ACCOUNT INSTRUCTIONS
       // note: the above instructions are required before initializing the mint
       initializeMintInstruction,
       initializeMetadataInstruction,

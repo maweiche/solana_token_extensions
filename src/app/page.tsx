@@ -308,7 +308,7 @@ export default function Home() {
               Mint Tokens to Account
             </button>
             <button
-              disabled={true}
+              // disabled={true}
               onClick={()=> burnTokens()}
               className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
             >

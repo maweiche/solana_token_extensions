@@ -1,33 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
     Connection,
-    Keypair,
-    SystemProgram,
-    Transaction,
-    clusterApiUrl,
-    sendAndConfirmTransaction,
     PublicKey
-  } from "@solana/web3.js";
-  import { useWallet } from "@solana/wallet-adapter-react";
-  import {
-    ExtensionType,
-    updateRateInterestBearingMint,
-    createInitializeInterestBearingMintInstruction,
-    createInitializeMintInstruction,
-    getMintLen,
+} from "@solana/web3.js";
+import {
     TOKEN_2022_PROGRAM_ID,
-    amountToUiAmount,
     getInterestBearingMintConfigState,
     getMint,
-  } from "@solana/spl-token";
-
-// Mint Config: {
-//   "rateAuthority": "7wK3jPMYjpZHZAghjersW6hBNMgi9VAGr75AhYRqR2n",
-//   "initializationTimestamp": 1706433803,
-//   "preUpdateAverageRate": 32767,
-//   "lastUpdateTimestamp": 1706433803,
-//   "currentRate": 32767
-// }
+} from "@solana/spl-token";
 
 type MintConfig = {
     rateAuthority: string;
@@ -44,7 +24,6 @@ export default function InterestUi(
     const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
     const connection = new Connection(rpcEndpoint, "confirmed");
 
-
     async function getInterestDetails() {
         // Fetch Mint Account data
         const mintAccount = await getMint(
@@ -55,8 +34,8 @@ export default function InterestUi(
         );
         
         // Get Interest Config for Mint Account
-        const interestBearingMintConfig = await getInterestBearingMintConfigState(
-            mintAccount, // Mint Account data
+        const interestBearingMintConfig = getInterestBearingMintConfigState(
+            mintAccount,
         );
 
         if (!interestBearingMintConfig) {
@@ -86,28 +65,25 @@ export default function InterestUi(
     }, []);
 
     return (
-        <div className='flex flex-col border-2 border-black rounded-md p-4 space-y-2 justify-center items-center'>
-            <h1>Interest</h1>
-            <table className='table-auto'>
-                <thead>
-                    <tr>
-                        <th>Rate Authority</th>
-                        <th>Initialization Timestamp</th>
-                        <th>Pre-Update Average Rate</th>
-                        <th>Last Update Timestamp</th>
-                        <th>Current Rate</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>{interestConfig?.rateAuthority.slice(0,4)}...{interestConfig?.rateAuthority.slice(-4)}</td>
-                        <td>{new Date(Number(interestConfig?.initializationTimestamp) * 1000).toLocaleString()}</td> 
-                        <td>{interestConfig?.preUpdateAverageRate}</td>
-                        <td>{new Date(Number(interestConfig?.lastUpdateTimestamp) * 1000).toLocaleString()}</td>
-                        <td>{interestConfig?.currentRate}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+        <table className='table-auto shadow-lg bg-white border-collapse'>
+            <thead>
+                <tr>
+                    <th className='bg-blue-100 border text-left px-8 py-4'>Rate Authority</th>
+                    <th className='bg-blue-100 border text-left px-8 py-4'>Init Time</th>
+                    <th className='bg-blue-100 border text-left px-8 py-4'>Init Avg Rate</th>
+                    <th className='bg-blue-100 border text-left px-8 py-4'>Last Update Time</th>
+                    <th className='bg-blue-100 border text-left px-8 py-4'>Current Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr className='hover:bg-gray-50 focus:bg-gray-300 active:bg-red-200' tabIndex={0}>
+                    <td className='border px-8 py-4'>{interestConfig?.rateAuthority.slice(0,4)}...{interestConfig?.rateAuthority.slice(-4)}</td>
+                    <td className='border px-8 py-4'>{new Date(Number(interestConfig?.initializationTimestamp) * 1000).toLocaleString()}</td> 
+                    <td className='border px-8 py-4'>{interestConfig?.preUpdateAverageRate}</td>
+                    <td className='border px-8 py-4'>{new Date(Number(interestConfig?.lastUpdateTimestamp) * 1000).toLocaleString()}</td>
+                    <td className='border px-8 py-4'>{interestConfig?.currentRate}</td>
+                </tr>
+            </tbody>
+        </table>
     );
 }

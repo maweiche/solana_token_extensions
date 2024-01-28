@@ -1,5 +1,7 @@
 'use client'
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import InterestUi from "../components/interestUi";
+import MetadataUi from "@/components/metadatUi";
 import {
   Connection,
   Transaction,
@@ -7,29 +9,8 @@ import {
 import { useWallet } from "@solana/wallet-adapter-react";
 import {
   TokenMetadata,
-  createRemoveKeyInstruction,
 } from "@solana/spl-token-metadata";
 import dynamic from "next/dynamic";
-
-// UI/UX
-import InterestUi from "../components/interestUi";
-
-// pub struct TokenMetadata {
-//     /// The authority that can sign to update the metadata
-//     pub update_authority: OptionalNonZeroPubkey,
-//     /// The associated mint, used to counter spoofing to be sure that metadata
-//     /// belongs to a particular mint
-//     pub mint: Pubkey,
-//     /// The longer name of the token
-//     pub name: String,
-//     /// The shortened symbol for the token
-//     pub symbol: String,
-//     /// The URI pointing to richer metadata
-//     pub uri: String,
-//     /// Any additional metadata about the token as key-value pairs. The program
-//     /// must avoid storing the same key twice.
-//     pub additional_metadata: Vec<(String, String)>,
-// }
 
 const WalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((mod) => mod.WalletMultiButton),
@@ -40,14 +21,13 @@ export default function Home() {
   const [mint, setMint] = useState<string | null>(null);
   const [metaData, setMetaData] = useState<TokenMetadata>();
   const [showInterest, setShowInterest] = useState<boolean>(false);
+  const [showMetadata, setShowMetadata] = useState<boolean>(false);
   const { publicKey, sendTransaction } = useWallet();
   const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
   const connection = new Connection(rpcEndpoint, "confirmed");
 
   async function createMint() {
-    console.log('publicKey starting mint', publicKey?.toString())
     try {
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/mint", {
         method: "POST",
         body: JSON.stringify({ 
@@ -59,34 +39,25 @@ export default function Home() {
       });
 
       const txData = await res.json();
-      
-      console.log("txData", txData);
-      console.log('txData mint', txData.mint)
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
       console.log('mint address', txData.mint)
+
       setMint(txData.mint);
 
       console.log(
         "\nCreate Mint Account:",
-        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
-      console.log('txHash', txHash)
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
 
-
   // Remove a key from the metadata account
   async function removeMetadata() {
-    console.log('publicKey', publicKey?.toString())
-      console.log('mint', mint)
-      console.log('metaData', metaData)
     try {
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/remove", {
         method: "POST",
         body: JSON.stringify({ 
@@ -100,9 +71,6 @@ export default function Home() {
       });
 
       const txData = await res.json();
-      
-      console.log("txData", txData);
-      console.log('txData mint', txData.mint)
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
@@ -111,11 +79,9 @@ export default function Home() {
 
       console.log(
         "\nUpdated Metadata on Mint Account:",
-        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
-      console.log('txHash', txHash)
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
@@ -123,7 +89,6 @@ export default function Home() {
    // Remove a key from the metadata account
    async function closeMintAccount() {
     try {
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/closeMint", {
         method: "POST",
         body: JSON.stringify({ 
@@ -136,22 +101,17 @@ export default function Home() {
       });
 
       const txData = await res.json();
-      
-      console.log("txData", txData);
-      console.log('txData mint', txData.mint)
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
 
       console.log(
         "\nMint Account Closed:",
-        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
-      console.log('txHash', txHash)
 
       setMint(null);
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
@@ -159,7 +119,6 @@ export default function Home() {
   // Mint Tokens to Account
   async function mintToAccount() {
     try {
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/mintTo", {
         method: "POST",
         body: JSON.stringify({ 
@@ -172,21 +131,17 @@ export default function Home() {
       });
 
       const txData = await res.json();
-      
-      console.log("txData", txData);
-      console.log('txData mint', txData.mint)
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
 
       console.log(
         "\nTokens Minted! :",
-        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
       console.log('txHash', txHash)
 
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
@@ -194,7 +149,6 @@ export default function Home() {
   // Burn Tokens from Account
   async function burnTokens() {
     try {
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/burn", {
         method: "POST",
         body: JSON.stringify({ 
@@ -207,21 +161,16 @@ export default function Home() {
       });
 
       const txData = await res.json();
-      
-      console.log("txData", txData);
-      console.log('txData mint', txData.mint)
       const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
       const txHash =
         await sendTransaction(tx, connection);
 
       console.log(
-        "\nMint Account Closed:",
+        "\nTokens Burned:",
         `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
-      console.log('txHash', txHash)
 
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
@@ -229,33 +178,31 @@ export default function Home() {
   // Update Interest on Token
   async function updateInterest() {
     try {
-        console.log('mint', mint)
-        // send the metadata to the /api/mint endpoint
-        const res = await fetch("/api/updateInterest", {
+      setShowInterest(false);
+
+      const res = await fetch("/api/updateInterest", {
         method: "POST",
         body: JSON.stringify({ 
-            mint: mint, // Mint Account address
-            publicKey: publicKey, // Wallet address
+            mint: mint,
+            publicKey: publicKey,
         }),
         headers: {
             "Content-Type": "application/json",
         },
-        });
+      });
 
-        const txData = await res.json();
-        const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
-        const txHash =
-          await sendTransaction(tx, connection);
-  
-        console.log(
-          "\nMint Account Closed:",
-          `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
-        );
-        console.log('txHash', txHash)
+      const txData = await res.json();
+      const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+      const txHash =
+        await sendTransaction(tx, connection);
 
+      console.log(
+        "\nInterest Updated:",
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
+      );
 
+      setShowInterest(true);
     } catch (err) {
-        // unpack the response
         console.log('err', err)
     }
   }
@@ -263,12 +210,10 @@ export default function Home() {
   // Read Metadata from Mint Account
   async function readMintMetadata() {
     try {
-      console.log('mint', mint)
-      // send the metadata to the /api/mint endpoint
       const res = await fetch("/api/readMint", {
         method: "POST",
         body: JSON.stringify({ 
-          mint: mint, // Mint Account address
+          mint: mint,
         }),
         headers: {
           "Content-Type": "application/json",
@@ -277,33 +222,22 @@ export default function Home() {
 
       const mintData = await res.json();
 
-      console.log('mintData', mintData)
       console.log('mintData.metadata', mintData.metadata)
 
       setMetaData(mintData.metadata);
 
     } catch (err) {
-      // unpack the response
       console.log('err', err)
     }
   }
-  
 
   return (
-    <div 
-      className='flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-r from-green-400 to-blue-500 space-y-2'
-    >
-      <h1 
-        className='text-6xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-500'
-      >
+    <div className='flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-r from-green-400 to-blue-500 space-y-2'>
+      <h1 className='text-6xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-500'>
         Token Extensions
       </h1>
-
       <WalletMultiButton />
-
-      <div
-        className='flex flex-col space-x-2'
-      >
+      <div className='flex flex-col space-x-2'>
         {!mint && (
           <button 
             onClick={createMint} 
@@ -314,17 +248,11 @@ export default function Home() {
         )}
         
         {mint && (
-          <div
-            className='flex flex-col space-y-2'
-          >
-            <h1
-              className='text-2xl font-bold text-center text-black'
-            >
+          <div className='flex flex-col space-y-2'>
+            <h1 className='text-2xl font-bold text-center text-black'>
               Mint Address: {mint}
             </h1>
-            <div
-              className='flex flex-row space-x-2 items-center justify-center'
-            >
+            <div className='flex flex-row space-x-2 items-center justify-center'>
               <button 
                 onClick={readMintMetadata}
                 className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
@@ -347,9 +275,7 @@ export default function Home() {
               </button>
             </div>
 
-            <div
-              className='flex flex-row space-x-2 items-center justify-center'
-            >
+            <div className='flex flex-row space-x-2 items-center justify-center'>
               <button
                 onClick={()=> mintToAccount()}
                 className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
@@ -365,16 +291,24 @@ export default function Home() {
               </button>
             </div>
 
-            <div
-              className='flex flex-row space-x-2 items-center justify-center'
-            >
+            <div className='flex flex-row space-x-2 items-center justify-center'>
               <button
                 onClick={()=> updateInterest()}
                 className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
               >
                 Update Interest
               </button>
+            </div>
 
+            <div className='flex flex-row space-x-2 items-center justify-center'>
+              {metaData && (
+                <button
+                  onClick={()=> setShowMetadata(!showMetadata)}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  {showMetadata ? 'Hide Metadata' : 'Show Metadata'}
+                </button>
+              )}
               <button
                 onClick={()=> setShowInterest(!showInterest)}
                 className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
@@ -383,9 +317,10 @@ export default function Home() {
               </button>
             </div>
 
-            <div
-              className='flex flex-col space-y-2 items-center justify-center'
-            >
+            <div className='flex flex-col space-y-2 items-center justify-center'>
+              {showMetadata && metaData && (
+                <MetadataUi metadata={metaData}/>
+              )}
               {showInterest && (
                 <InterestUi mint={mint}/>
               )}

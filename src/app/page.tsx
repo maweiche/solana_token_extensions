@@ -236,9 +236,16 @@ export default function Home() {
       <h1 className='text-6xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-500'>
         Token Extensions
       </h1>
-      <WalletMultiButton />
+      {!publicKey && (
+        <div className='flex flex-col space-x-2'>
+          <h1 className='text-2xl font-bold text-center text-black'>
+            Connect Wallet to get started
+          </h1>
+          <WalletMultiButton />
+        </div>
+      )}
       <div className='flex flex-col space-x-2'>
-        {!mint && (
+        {!mint && publicKey && (
           <button 
             onClick={createMint} 
             className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'

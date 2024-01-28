@@ -1,10 +1,9 @@
 'use client'
-import type { Metadata } from "next";
+import { Analytics } from '@vercel/analytics/react';
 import { Inter } from "next/font/google";
 import { useMemo } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { UnsafeBurnerWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
@@ -56,7 +55,10 @@ export default function RootLayout({
           <ConnectionProvider endpoint={endpoint}>
             <WalletProvider wallets={wallets} autoConnect>
               <WalletModalProvider>
-                  <body className={inter.className}>{children}</body>
+                  <body className={inter.className}>
+                    {children}
+                    <Analytics />
+                  </body>
               </WalletModalProvider>
             </WalletProvider>
           </ConnectionProvider>

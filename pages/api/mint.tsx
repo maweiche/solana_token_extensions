@@ -4,11 +4,8 @@ import {
   Keypair,
   SystemProgram,
   Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
   PublicKey
 } from "@solana/web3.js";
-import { useWallet } from "@solana/wallet-adapter-react";
 import {
   ExtensionType,
   TOKEN_2022_PROGRAM_ID,
@@ -51,14 +48,7 @@ export default async function handler(
   const public_key = new PublicKey(publicKey);
   // Generate new keypair for Mint Account
   const mintKeypair = Keypair.generate();
-
-  // use fs to create a file with the mintKeypair in the lib folder
-  const filePath = path.join(process.cwd(), 'lib', 'mint.json')
-
-  fs.writeFile(filePath, JSON.stringify(mintKeypair), function (err) {
-    if (err) throw err;
-    console.log('Saved!');
-  })
+  
   
   // Address for Mint Account
   const mint = mintKeypair.publicKey;
@@ -68,12 +58,10 @@ export default async function handler(
   const mintAuthority = public_key;
   // Authority that can update the metadata pointer and token metadata
   const updateAuthority = public_key;
-  // Close Authority that can close the mint account
-  const closeAuthority = public_key;
 
   // Metadata to store in Mint Account
   const metaData: TokenMetadata = {
-    updateAuthority: public_key,
+    updateAuthority: updateAuthority,
     mint: mint,
     name: "RetroSol",
     symbol: "RETRO",
@@ -104,17 +92,11 @@ export default async function handler(
   }
 
   try {
-    const lamports = await calculateRentExemption();
 
-    // Instruction to invoke System Program to create new account
-    const createAccountInstruction = SystemProgram.createAccount({
-      fromPubkey: public_key, // Account that will transfer lamports to created account
-      newAccountPubkey: metaData.mint, // Address of the account to create
-      space: mintLen, // Amount of bytes to allocate to the created account
-      lamports, // Amount of lamports transferred to created account
-      programId: TOKEN_2022_PROGRAM_ID, // Program assigned as owner of created account
-    });
+    // UPDATEABLE METADATA INSTRUCTIONS//////////////////////////////////////////////////
 
+    // In this example, the metadata pointer will point to the Mint address, 
+    // indicating that the metadata will be stored directly on the Mint Account.
     const initializeMetadataPointerInstruction =
       createInitializeMetadataPointerInstruction(
         mint, // Mint Account address
@@ -122,6 +104,92 @@ export default async function handler(
         mint, // Account address that holds the metadata
         TOKEN_2022_PROGRAM_ID,
       );
+
+    // Instruction to update metadata, adding custom field
+    // This instruction will either update the value of an existing field or add it to additional_metadata if it does not already exist. 
+    // Note that you may need to reallocate more space to the account to accommodate the additional data. In this example, 
+    // we allocated all the lamports required for rent up front when creating the account.
+    const updateFieldInstruction = 
+      createUpdateFieldInstruction({
+        programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
+        metadata: mint, // Account address that holds the metadata
+        updateAuthority: updateAuthority, // Authority that can update the metadata
+        field: metaData.additionalMetadata[0][0], // key
+        value: metaData.additionalMetadata[0][1], // value
+      });
+    
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // CLOSEABLE MINT ACCOUNT INSTRUCTIONS////////////////////////////////////////////////
+
+    // Close Authority that can close the mint account
+    const closeAuthority = public_key;
+
+    // Instruction to initialize the MintCloseAuthority Extension
+    const initializeMintCloseAuthorityInstruction =
+      createInitializeMintCloseAuthorityInstruction(
+        mint, // Mint Account address
+        closeAuthority, // Designated Close Authority
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS (SOL-BOUND)/////////////////////////////
+
+    // Instruction to initialize the NonTransferable Extension
+    const initializeNonTransferableMintInstruction =
+      createInitializeNonTransferableMintInstruction(
+        mint, // Mint Account address
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // INTEREST BEARING MINT ACCOUNT INSTRUCTIONS/////////////////////////////////////////
+
+    // Authority that can update the interest rate
+    const rateAuthority = public_key;
+    // Interest rate basis points (100 = 1%)
+    // Max value = 32,767 (i16)
+    const rate = 32_767;
+
+    // Instruction to initialize the InterestBearingConfig Extension
+    const initializeInterestBearingMintInstruction =
+    createInitializeInterestBearingMintInstruction(
+      mint, // Mint Account address
+      rateAuthority, // Designated Rate Authority
+      rate, // Interest rate basis points
+      TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+    );
+  
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // PERMANENT DELEGATION ACCOUNT INSTRUCTIONS//////////////////////////////////////////
+
+    // Instruction to initialize the MintCloseAuthority Extension
+    const permanentDelegate = public_key;
+    const initializePermanentDelegateInstruction =
+      createInitializePermanentDelegateInstruction(
+        mint, // Mint Account address
+        permanentDelegate, // Designated Permanent Delegate
+        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
+      );
+
+    //////////////////////////////////////////////////////////////////////////////////////
+    //***********************************************************************************/
+    // MINT ACCOUNT INSTRUCTIONS/////////////////////////////////////////////////////////
+
+    const lamports = await calculateRentExemption();
+
+    // Instruction to invoke System Program to create new account
+    const createAccountInstruction = SystemProgram.createAccount({
+      fromPubkey: public_key, // Account that will transfer lamports to created account
+      newAccountPubkey: mint, // Address of the account to create
+      space: mintLen, // Amount of bytes to allocate to the created account
+      lamports, // Amount of lamports transferred to created account
+      programId: TOKEN_2022_PROGRAM_ID, // Program assigned as owner of created account
+    });
 
     // Instruction to initialize Mint Account data
     const initializeMintInstruction = 
@@ -146,70 +214,9 @@ export default async function handler(
         uri: metaData.uri,
       });
 
-
-    // UPDATEABLE METADATA INSTRUCTIONS//////////////////////////////////////////////////
-
-    // Instruction to update metadata, adding custom field
-    // This instruction will either update the value of an existing field or add it to additional_metadata if it does not already exist. 
-    // Note that you may need to reallocate more space to the account to accommodate the additional data. In this example, 
-    // we allocated all the lamports required for rent up front when creating the account.
-    const updateFieldInstruction = 
-      createUpdateFieldInstruction({
-        programId: TOKEN_2022_PROGRAM_ID, // Token Extension Program as Metadata Program
-        metadata: metaData.mint, // Account address that holds the metadata
-        updateAuthority: updateAuthority, // Authority that can update the metadata
-        field: metaData.additionalMetadata[0][0], // key
-        value: metaData.additionalMetadata[0][1], // value
-      });
-    
     //////////////////////////////////////////////////////////////////////////////////////
     //***********************************************************************************/
-    // CLOSEABLE MINT ACCOUNT INSTRUCTIONS////////////////////////////////////////////////
-    // Instruction to initialize the MintCloseAuthority Extension
-    const initializeMintCloseAuthorityInstruction =
-      createInitializeMintCloseAuthorityInstruction(
-        mint, // Mint Account address
-        closeAuthority, // Designated Close Authority
-        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
-      );
-
-    //////////////////////////////////////////////////////////////////////////////////////
-    //***********************************************************************************/
-    // NON TRANSFERABLE MINT ACCOUNT INSTRUCTIONS (SOL-BOUND)/////////////////////////////
-    // Instruction to initialize the NonTransferable Extension
-    const initializeNonTransferableMintInstruction =
-      createInitializeNonTransferableMintInstruction(
-        mint, // Mint Account address
-        TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
-      );
-    //////////////////////////////////////////////////////////////////////////////////////
-    //***********************************************************************************/
-    // INTEREST BEARING MINT ACCOUNT INSTRUCTIONS/////////////////////////////////////////
-    // Authority that can update the interest rate
-    const rateAuthority = public_key;
-    // Interest rate basis points (100 = 1%)
-    // Max value = 32,767 (i16)
-    const rate = 32_767;
-
-    // Instruction to initialize the InterestBearingConfig Extension
-    const initializeInterestBearingMintInstruction =
-    createInitializeInterestBearingMintInstruction(
-      mint, // Mint Account address
-      rateAuthority, // Designated Rate Authority
-      rate, // Interest rate basis points
-      TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
-    );
-    //////////////////////////////////////////////////////////////////////////////////////
-    //***********************************************************************************/
-    // PERMANENT DELEGATION ACCOUNT INSTRUCTIONS//////////////////////////////////////////
-    // Instruction to initialize the MintCloseAuthority Extension
-    const permanentDelegate = public_key;
-    const initializePermanentDelegateInstruction =
-    createInitializePermanentDelegateInstruction(
-      mint, // Mint Account address
-      permanentDelegate, // Designated Permanent Delegate
-      TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
-    );
+    // TRANSACTION BUILD /////////////////////////////////////////////////////////////////
 
     // Get a recent blockhash to include in the transaction
     const { blockhash } =
@@ -217,7 +224,6 @@ export default async function handler(
 
     const transaction = new Transaction({
       recentBlockhash: blockhash,
-      // The buyer pays the transaction fee
       feePayer: updateAuthority,
     });
       
@@ -237,16 +243,31 @@ export default async function handler(
       updateFieldInstruction, // UPDATEABLE METADATA INSTRUCTIONS
     );
 
-      // partial sign transaction with mint keypair
-      transaction.partialSign(mintKeypair);
+    // partial sign transaction with mint keypair
+    transaction.partialSign(mintKeypair);
 
-      // Serialize the transaction and convert to base64 to return it
-      const serializedTransaction = transaction.serialize({
-        // We will need the buyer to sign this transaction after it's returned to them
-        requireAllSignatures: false,
-      });
-      const base64 = serializedTransaction.toString("base64");
+    // Serialize the transaction and convert to base64 to return it
+    const serializedTransaction = transaction.serialize({
+      requireAllSignatures: false,
+    });
+    const base64 = serializedTransaction.toString("base64");
 
+    // Use fs to create a file with the mint details in the lib folder
+    const filePath = path.join(process.cwd(), 'lib', 'mint.json')
+
+    const mint_details = {
+      mint_address: mintKeypair.publicKey.toString(),
+      mint_creator: publicKey,
+      update_authority: metaData.updateAuthority!.toString(),
+      close_authority: closeAuthority ? closeAuthority.toString() : null,
+      interest_rate_authority: rateAuthority ? rateAuthority.toString() : null,
+      permanent_delegate: permanentDelegate ? permanentDelegate.toString() : null,
+    }
+  
+    fs.writeFile(filePath, JSON.stringify(mint_details), function (err) {
+      if (err) throw err;
+      console.log('Mint Details Saved!');
+    })
 
     // Return the serialized transaction
     res.status(200).json({

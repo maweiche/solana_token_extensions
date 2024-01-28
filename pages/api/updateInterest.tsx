@@ -1,42 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
   Connection,
-  Keypair,
-  SystemProgram,
   Transaction,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
   PublicKey,
 } from "@solana/web3.js";
-import { useWallet } from "@solana/wallet-adapter-react";
 import {
-  ExtensionType,
   TOKEN_2022_PROGRAM_ID,
-  createMintToInstruction,
-  getAssociatedTokenAddress,
-  createBurnInstruction,
-  createInitializeMintInstruction,
-  getMintLen,
-  createInitializeMetadataPointerInstruction,
-  getMint,
-  getMetadataPointerState,
-  getTokenMetadata,
-  TYPE_SIZE,
-  LENGTH_SIZE,
-  createTransferCheckedInstruction,
-  closeAccount,
   createUpdateRateInterestBearingMintInstruction,
-  createCloseAccountInstruction
 } from "@solana/spl-token";
-import {
-  createInitializeInstruction,
-  createUpdateFieldInstruction,
-  createRemoveKeyInstruction,
-  pack,
-  TokenMetadata,
-} from "@solana/spl-token-metadata";
-import fs from "fs";
-import path from "path";
 
 type Data = {
   transaction: string;
@@ -54,12 +25,10 @@ export default async function handler(
     const connection = new Connection(rpcEndpoint, "confirmed");
 
     const { publicKey, mint } = req.body;
-    console.log('req.body', req.body)
+
     const public_key = new PublicKey(publicKey);
 
-    console.log('mint', mint)
     try {
-
         const { blockhash } = await connection.getLatestBlockhash("finalized");
 
         const transaction = new Transaction({

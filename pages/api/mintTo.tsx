@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import {
   Connection,
-  Keypair,
   Transaction,
   PublicKey,
 } from "@solana/web3.js";
@@ -58,14 +57,12 @@ export default async function handler(
             TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
           );
 
-        console.log('associatedTokenAccount', associatedTokenAccount)
-
         const mintToInstruction = await createMintToInstruction(
             new PublicKey(mint), // Mint Account address
             associatedTokenAccount, // Destination address
             mint_authority, // Mint token authority
             100, // Amount (100 for 2 decimal place mint = 1.00 tokens)
-            [public_key], // Signers
+            undefined, // Signers if multisig
             TOKEN_2022_PROGRAM_ID, // Token Extension Program ID
           );
         

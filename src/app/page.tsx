@@ -12,7 +12,7 @@ import {
 import dynamic from "next/dynamic";
 
 // UI/UX
-import InterestUi from "../../components/interestUi";
+import InterestUi from "../components/interestUi";
 
 // pub struct TokenMetadata {
 //     /// The authority that can sign to update the metadata
@@ -298,93 +298,101 @@ export default function Home() {
       >
         Token Extensions
       </h1>
+
       <WalletMultiButton />
+
       <div
-        className='flex flex-row space-x-2'
+        className='flex flex-col space-x-2'
       >
-        <button 
-          onClick={createMint} 
-          className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-        >
-          Create Mint
-        </button>
-        {mint && (
+        {!mint && (
           <button 
-            onClick={readMintMetadata}
+            onClick={createMint} 
             className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
           >
-            Read Mint Metadata
+            Create Mint
           </button>
         )}
+        
         {mint && (
-          <button 
-            onClick={()=> removeMetadata()}
-            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+          <div
+            className='flex flex-col space-y-2'
           >
-            Remove Metadata
-          </button>
-        )}
-        {mint && (
-          <button 
-            onClick={()=> closeMintAccount()}
-            className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-          >
-            Close Mint Account
-          </button>
-        )}
-      </div>
-      <div
-        className='flex flex-row space-y-2'
-      >
-        {mint && (
-          <div>
-            <button
-              onClick={()=> mintToAccount()}
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            <h1
+              className='text-2xl font-bold text-center text-black'
             >
-              Mint Tokens to Account
-            </button>
-            <button
-              // disabled={true}
-              onClick={()=> burnTokens()}
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              Mint Address: {mint}
+            </h1>
+            <div
+              className='flex flex-row space-x-2 items-center justify-center'
             >
-              Burn Tokens from Account
-            </button>
+              <button 
+                onClick={readMintMetadata}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Read Mint Metadata
+              </button>
+
+              <button 
+                onClick={()=> removeMetadata()}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Remove Metadata
+              </button>
+
+              <button 
+                onClick={()=> closeMintAccount()}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Close Mint Account
+              </button>
+            </div>
+
+            <div
+              className='flex flex-row space-x-2 items-center justify-center'
+            >
+              <button
+                onClick={()=> mintToAccount()}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Mint Tokens to Account
+              </button>
+              <button
+                // disabled={true}
+                onClick={()=> burnTokens()}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Burn Tokens from Account
+              </button>
+            </div>
+
+            <div
+              className='flex flex-row space-x-2 items-center justify-center'
+            >
+              <button
+                onClick={()=> updateInterest()}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                Update Interest
+              </button>
+
+              <button
+                onClick={()=> setShowInterest(!showInterest)}
+                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+              >
+                {showInterest ? 'Hide Interest' : 'Show Interest'}
+              </button>
+            </div>
+
+            <div
+              className='flex flex-col space-y-2 items-center justify-center'
+            >
+              {showInterest && (
+                <InterestUi mint={mint}/>
+              )}
+            </div>
           </div>
         )}
       </div>
-      <div
-        className='flex flex-row space-y-2'
-      >
-        {mint && (
-          <div>
-            <button
-              onClick={()=> updateInterest()}
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-            >
-              Update Interest
-            </button>
-          </div>
-        )}
-      </div>
-      <div
-        className='flex flex-row space-y-2'
-      >
-        {mint && (
-          <div>
-            <button
-              onClick={()=> setShowInterest(!showInterest)}
-              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-            >
-              {showInterest ? 'Hide Interest' : 'Show Interest'}
-            </button>
-            {showInterest && (
-              <InterestUi mint={mint}/>
-            )}
-          </div>
-        )}
-      </div>
-    </div>      
+    </div>
   )
 }

@@ -252,22 +252,24 @@ export default async function handler(
     });
     const base64 = serializedTransaction.toString("base64");
 
+    // IF DEVELOPING LOCALLY ////////////////////////////////////////////////////////////
     // Use fs to create a file with the mint details in the lib folder
-    const filePath = path.join(process.cwd(), 'lib', 'mint.json')
+    // const filePath = path.join(process.cwd(), 'lib', 'mint.json')
 
-    const mint_details = {
-      mint_address: mintKeypair.publicKey.toString(),
-      mint_creator: publicKey,
-      update_authority: metaData.updateAuthority!.toString(),
-      close_authority: closeAuthority ? closeAuthority.toString() : null,
-      interest_rate_authority: rateAuthority ? rateAuthority.toString() : null,
-      permanent_delegate: permanentDelegate ? permanentDelegate.toString() : null,
-    }
+    // const mint_details = {
+    //   mint_address: mintKeypair.publicKey.toString(),
+    //   mint_creator: publicKey,
+    //   update_authority: metaData.updateAuthority!.toString(),
+    //   close_authority: closeAuthority ? closeAuthority.toString() : null,
+    //   interest_rate_authority: rateAuthority ? rateAuthority.toString() : null,
+    //   permanent_delegate: permanentDelegate ? permanentDelegate.toString() : null,
+    // }
   
-    fs.writeFile(filePath, JSON.stringify(mint_details), function (err) {
-      if (err) throw err;
-      console.log('Mint Details Saved!');
-    })
+    // fs.writeFile(filePath, JSON.stringify(mint_details), function (err) {
+    //   if (err) throw err;
+    //   console.log('Mint Details Saved!');
+    // })
+    //////////////////////////////////////////////////////////////////////////////////////
 
     // Return the serialized transaction
     res.status(200).json({

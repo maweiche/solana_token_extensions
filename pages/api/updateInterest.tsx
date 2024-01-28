@@ -52,7 +52,6 @@ export default async function handler(
 
         // Serialize the transaction and convert to base64 to return it
         const serializedTransaction = transaction.serialize({
-            // We will need the buyer to sign this transaction after it's returned to them
             requireAllSignatures: false,
         });
         

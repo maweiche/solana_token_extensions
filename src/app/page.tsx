@@ -11,6 +11,8 @@ import {
 } from "@solana/spl-token-metadata";
 import dynamic from "next/dynamic";
 
+// UI/UX
+import InterestUi from "../../components/interestUi";
 
 // pub struct TokenMetadata {
 //     /// The authority that can sign to update the metadata
@@ -37,6 +39,7 @@ const WalletMultiButton = dynamic(
 export default function Home() {
   const [mint, setMint] = useState<string | null>(null);
   const [metaData, setMetaData] = useState<TokenMetadata>();
+  const [showInterest, setShowInterest] = useState<boolean>(false);
   const { publicKey, sendTransaction } = useWallet();
   const rpcEndpoint = process.env.NEXT_PUBLIC_HELIUS_RPC!;
   const connection = new Connection(rpcEndpoint, "confirmed");
@@ -213,13 +216,47 @@ export default function Home() {
 
       console.log(
         "\nMint Account Closed:",
-        `https://solscan.io/tx/${txHash}?cluster=devnet-solana`,
+        `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
       );
       console.log('txHash', txHash)
 
     } catch (err) {
       // unpack the response
       console.log('err', err)
+    }
+  }
+
+  // Update Interest on Token
+  async function updateInterest() {
+    try {
+        console.log('mint', mint)
+        // send the metadata to the /api/mint endpoint
+        const res = await fetch("/api/updateInterest", {
+        method: "POST",
+        body: JSON.stringify({ 
+            mint: mint, // Mint Account address
+            publicKey: publicKey, // Wallet address
+        }),
+        headers: {
+            "Content-Type": "application/json",
+        },
+        });
+
+        const txData = await res.json();
+        const tx = Transaction.from(Buffer.from(txData.transaction, "base64"));
+        const txHash =
+          await sendTransaction(tx, connection);
+  
+        console.log(
+          "\nMint Account Closed:",
+          `https://explorer.solana.com/tx/${txHash}?cluster=devnet-solana`,
+        );
+        console.log('txHash', txHash)
+
+
+    } catch (err) {
+        // unpack the response
+        console.log('err', err)
     }
   }
 
@@ -314,6 +351,37 @@ export default function Home() {
             >
               Burn Tokens from Account
             </button>
+          </div>
+        )}
+      </div>
+      <div
+        className='flex flex-row space-y-2'
+      >
+        {mint && (
+          <div>
+            <button
+              onClick={()=> updateInterest()}
+              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            >
+              Update Interest
+            </button>
+          </div>
+        )}
+      </div>
+      <div
+        className='flex flex-row space-y-2'
+      >
+        {mint && (
+          <div>
+            <button
+              onClick={()=> setShowInterest(!showInterest)}
+              className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+            >
+              {showInterest ? 'Hide Interest' : 'Show Interest'}
+            </button>
+            {showInterest && (
+              <InterestUi mint={mint}/>
+            )}
           </div>
         )}
       </div>

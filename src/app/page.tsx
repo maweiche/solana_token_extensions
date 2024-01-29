@@ -18,7 +18,7 @@ const WalletMultiButton = dynamic(
 );
 
 export default function Home() {
-  const [mint, setMint] = useState<string | null>(null);
+  const [mint, setMint] = useState<string | null>('AFcUU38o7Q5XX9MBDMmo9z5ht8eGUVvTta9bofnQiMCi');
   const [metaData, setMetaData] = useState<TokenMetadata>();
   const [showInterest, setShowInterest] = useState<boolean>(false);
   const [showMetadata, setShowMetadata] = useState<boolean>(false);
@@ -231,13 +231,19 @@ export default function Home() {
     }
   }
 
+  useEffect(() => {
+    if(mint !== null) {
+      readMintMetadata();
+    }
+  },[])
+
   return (
-    <div className='flex flex-col items-center justify-center min-h-screen py-2 bg-gradient-to-r from-green-400 to-blue-500 space-y-2'>
+    <div className='flex flex-col items-center justify-center min-h-screen py-2 bg-black'>
       <h1 className='text-6xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-red-500'>
         Token Extensions
       </h1>
       {!publicKey && (
-        <h1 className='text-2xl font-bold text-center text-black'>
+        <h1 className='text-2xl font-bold text-center text-white'>
           Connect Wallet to get started
         </h1>
       )}
@@ -253,76 +259,82 @@ export default function Home() {
         )}
         
         {mint && (
-          <div className='flex flex-col space-y-2'>
-            <h1 className='text-2xl font-bold text-center text-black'>
-              Mint Address: {mint}
-            </h1>
-            <div className='flex flex-row space-x-2 items-center justify-center'>
-              <button 
-                onClick={readMintMetadata}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Read Mint Metadata
-              </button>
-
-              <button 
-                onClick={()=> removeMetadata()}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Remove Metadata
-              </button>
-
-              <button 
-                onClick={()=> closeMintAccount()}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Close Mint Account
-              </button>
+          <div className='flex flex-col space-y-2 items-center justify-center'>
+            <div className='flex flex-col space-x-2 items-center justify-center'>
+              <h1 className='text-2xl font-bold text-center text-white'>
+                Mint Address: 
+              </h1>
+              <p className='font-bold text-center text-white'>
+                {mint}
+              </p>
             </div>
-
-            <div className='flex flex-row space-x-2 items-center justify-center'>
-              <button
-                onClick={()=> mintToAccount()}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Mint Tokens to Account
-              </button>
-              <button
-                // disabled={true}
-                onClick={()=> burnTokens()}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Burn Tokens from Account
-              </button>
-            </div>
-
-            <div className='flex flex-row space-x-2 items-center justify-center'>
-              <button
-                onClick={()=> updateInterest()}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                Update Interest
-              </button>
-            </div>
-
-            <div className='flex flex-row space-x-2 items-center justify-center'>
-              {metaData && (
-                <button
-                  onClick={()=> setShowMetadata(!showMetadata)}
+            <div className='flex flex-row space-x-2'>
+              <div className='flex flex-col space-y-2 items-center justify-center border border-white rounded-lg p-2'>
+                <button 
+                  onClick={readMintMetadata}
                   className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
                 >
-                  {showMetadata ? 'Hide Metadata' : 'Show Metadata'}
+                  Read Mint Metadata
                 </button>
-              )}
-              <button
-                onClick={()=> setShowInterest(!showInterest)}
-                className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
-              >
-                {showInterest ? 'Hide Interest' : 'Show Interest'}
-              </button>
+
+                <button 
+                  onClick={()=> removeMetadata()}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  Remove Metadata
+                </button>
+              </div>
+
+              <div className='flex flex-col space-y-2 border border-white rounded-lg p-2'>
+                <button
+                  onClick={()=> mintToAccount()}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  Mint Tokens to Account
+                </button>
+                <button
+                  // disabled={true}
+                  onClick={()=> burnTokens()}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  Burn Tokens from Account
+                </button>
+              </div>
+
+              <div className='flex flex-col space-y-2 border border-white rounded-lg p-2'>
+                <button
+                  onClick={()=> updateInterest()}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  Update Interest
+                </button>
+
+                <button 
+                  onClick={()=> closeMintAccount()}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  Close Mint Account
+                </button>
+              </div>
             </div>
 
             <div className='flex flex-col space-y-2 items-center justify-center'>
+              <div className='flex flex-row space-x-2 items-center justify-center border border-white rounded-lg p-2'>
+                {metaData && (
+                  <button
+                    onClick={()=> setShowMetadata(!showMetadata)}
+                    className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                  >
+                    {showMetadata ? 'Hide Metadata' : 'Show Metadata'}
+                  </button>
+                )}
+                <button
+                  onClick={()=> setShowInterest(!showInterest)}
+                  className='bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded'
+                >
+                  {showInterest ? 'Hide Interest' : 'Show Interest'}
+                </button>
+              </div>
               {showMetadata && metaData && (
                 <MetadataUi metadata={metaData}/>
               )}
